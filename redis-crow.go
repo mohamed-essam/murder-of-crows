@@ -17,7 +17,7 @@ func (c *RedisCrow) CreateQueue(queueName string) error {
 }
 
 func (c *RedisCrow) QueueSize(queueName string) int {
-	size, _ := c.Redis.LLen(fmt.Sprintf("muder::crows::%s", queueName)).Result()
+	size, _ := c.Redis.LLen(fmt.Sprintf("murder::crows::%s", queueName)).Result()
 	return int(size)
 }
 
