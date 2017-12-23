@@ -70,6 +70,7 @@ func (c *RedisCrow) ExtendLockKey(lockKey string, TTL int) {
 }
 
 func (c *RedisCrow) RemoveLockKey(lockKey string) {
+	c.Redis.Del(fmt.Sprintf("murder::crows::%s::key", lockKey))
 	queue, ok := c.FindQueueByKey(lockKey)
 	if ok {
 		c.Redis.Del(fmt.Sprintf("murder::crows::%s::locked", queue))
