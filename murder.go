@@ -76,3 +76,13 @@ func (m *Murder) Mark(lockKey string) {
 func (m *Murder) Unlock(lockKey string) {
 	m.crow.RemoveLockKey(lockKey)
 }
+
+// NewMurder :
+// Returns a new instance of murder with the given options
+func NewMurder(bulkSize, TTL int, crow Crow) *Murder {
+	return &Murder{
+		crow:      crow,
+		queueSize: bulkSize,
+		lockTTL:   TTL,
+	}
+}
