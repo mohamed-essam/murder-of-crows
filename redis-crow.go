@@ -32,6 +32,7 @@ func (c *RedisCrow) GetQueueContents(queueName string) []string {
 
 func (c *RedisCrow) ClearQueue(queueName string) error {
 	_, err := c.redis.Del(fmt.Sprintf("murder::crows::%s", queueName)).Result()
+	c.redis.LRem("murder::crows", 1, queueName).Result()
 	return err
 }
 
