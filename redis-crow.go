@@ -22,7 +22,8 @@ func (c *RedisCrow) QueueSize(queueName string) int {
 }
 
 func (c *RedisCrow) AddToQueue(queueName string, obj interface{}) {
-	c.Redis.LPush(fmt.Sprintf("murder::crows::%s", queueName), obj)
+	marshalled, _ := json.Marshal(obj)
+	c.Redis.LPush(fmt.Sprintf("murder::crows::%s", queueName), marshalled).Result()
 }
 
 func (c *RedisCrow) GetQueueContents(queueName string) []string {
