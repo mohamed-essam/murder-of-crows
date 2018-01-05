@@ -35,8 +35,8 @@ func (c *RedisCrow) GetQueueContents(queueName string) []string {
 
 func (c *RedisCrow) ClearQueue(queueName string, groupID string) error {
 	_, err := c.Redis.Del(fmt.Sprintf("murder::crows::%s", queueName)).Result()
+	c.Redis.SRem(fmt.Sprintf("murder::%s::ready", groupID), queueName).Result()
 	c.Redis.LRem(fmt.Sprintf("murder::%s::crows", groupID), 1, queueName).Result()
-	c.Redis.LRem(fmt.Sprintf("murder::%s::ready", groupID), 1, queueName).Result()
 	return err
 }
 
@@ -83,10 +83,10 @@ func (c *RedisCrow) RemoveLockKey(lockKey string) {
 
 func (c *RedisCrow) MoveToReady(queueName, groupID string) {
 	c.Redis.LRem(fmt.Sprintf("murder::%s::crows", groupID), 1, queueName).Result()
-	c.Redis.LPush(fmt.Sprintf("murder::%s::ready", groupID), queueName).Result()
+	c.Redis.SAdd(fmt.Sprintf("murder::%s::ready", groupID), queueName).Result()
 }
 
 func (c *RedisCrow) GetReadyQueues(groupID string) []string {
-	ret, _ := c.Redis.LRange(fmt.Sprintf("murder::%s::ready", groupID), 0, -1).Result()
+	ret, _ := c.Redis.SMembers(fmt.Sprintf("murder::%s::ready", groupID)).Result()
 	return ret
 }
