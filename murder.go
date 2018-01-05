@@ -14,10 +14,9 @@ type Murder struct {
 // Create a job in any queue
 func (m *Murder) Add(obj interface{}) {
 	queues := m.crow.GetQueues(m.workerGroupID)
-	if len(queues) > 0 {
-		q := queues[len(queues)-1]
+	for _, q := range queues {
 		size := m.crow.QueueSize(q)
-		if !m.crow.IsLocked(q) && size < m.queueSize { // Queue is unlocked and can be added to
+		if size < m.queueSize {
 			m.crow.AddToQueue(q, obj)
 			if size+1 >= m.queueSize {
 				m.crow.MoveToReady(q, m.workerGroupID)
