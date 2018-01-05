@@ -14,9 +14,14 @@ type Murder struct {
 // Create a job in any queue
 func (m *Murder) Add(obj interface{}) {
 	queues := m.crow.GetQueues(m.workerGroupID)
-	for _, q := range queues {
-		if !m.crow.IsLocked(q) && m.crow.QueueSize(q) < m.queueSize { // Queue is unlocked and can be added to
+	if len(queues) > 0 {
+		q := queues[len(queues)-1]
+		size := m.crow.QueueSize(q)
+		if !m.crow.IsLocked(q) && size < m.queueSize { // Queue is unlocked and can be added to
 			m.crow.AddToQueue(q, obj)
+			if size+1 >= m.queueSize {
+				m.crow.MoveToReady(q)
+			}
 			return
 		}
 	}
@@ -30,9 +35,9 @@ func (m *Murder) Add(obj interface{}) {
 // Lock a queue returning a lock key that is needed for acknowledging the processing of the queue
 // If no queue is ready to process, returns empty string and false
 func (m *Murder) Lock() (string, bool) {
-	queues := m.crow.GetQueues(m.workerGroupID)
+	queues := m.crow.GetReadyQueues(m.workerGroupID)
 	for _, q := range queues {
-		if !m.crow.IsLocked(q) && m.crow.QueueSize(q) >= m.queueSize { // Queue is unlocked and can be processed
+		if !m.crow.IsLocked(q) { // Queue is unlocked and can be processed
 			lockKey := newUUID()
 			ok := m.crow.CreateLockKey(q, lockKey, m.lockTTL)
 			if ok {
@@ -66,7 +71,7 @@ func (m *Murder) Ack(lockKey string) {
 func (m *Murder) Mark(lockKey string) {
 	q, ok := m.crow.FindQueueByKey(lockKey)
 	if ok {
-		m.crow.ClearQueue(q)
+		m.crow.ClearQueue(q, m.workerGroupID)
 		m.crow.RemoveLockKey(lockKey) // for cleaning up
 	}
 }

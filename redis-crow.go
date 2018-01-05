@@ -33,9 +33,10 @@ func (c *RedisCrow) GetQueueContents(queueName string) []string {
 	return contents
 }
 
-func (c *RedisCrow) ClearQueue(queueName string) error {
+func (c *RedisCrow) ClearQueue(queueName string, groupID string) error {
 	_, err := c.Redis.Del(fmt.Sprintf("murder::crows::%s", queueName)).Result()
-	c.Redis.LRem("murder::crows", 1, queueName).Result()
+	c.Redis.LRem(fmt.Sprintf("murder::%s::crows", groupID), 1, queueName).Result()
+	c.Redis.LRem(fmt.Sprintf("murder::%s::ready", groupID), 1, queueName).Result()
 	return err
 }
 
@@ -78,4 +79,14 @@ func (c *RedisCrow) RemoveLockKey(lockKey string) {
 	if ok {
 		c.Redis.Del(fmt.Sprintf("murder::crows::%s::locked", queue))
 	}
+}
+
+func (c *RedisCrow) MoveToReady(queueName, groupID string) {
+	c.Redis.LRem(fmt.Sprintf("murder::%s::crows", groupID), 1, queueName).Result()
+	c.Redis.LPush(fmt.Sprintf("murder::%s::ready", groupID), queueName).Result()
+}
+
+func (c *RedisCrow) GetReadyQueues(groupID string) []string {
+	ret, _ := c.Redis.LRange(fmt.Sprintf("murder::%s::ready", groupID), 0, -1).Result()
+	return ret
 }
