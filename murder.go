@@ -20,7 +20,7 @@ func (m *Murder) Add(obj interface{}) {
 		if !m.crow.IsLocked(q) && size < m.queueSize { // Queue is unlocked and can be added to
 			m.crow.AddToQueue(q, obj)
 			if size+1 >= m.queueSize {
-				m.crow.MoveToReady(q)
+				m.crow.MoveToReady(q, m.workerGroupID)
 			}
 			return
 		}
