@@ -4,15 +4,16 @@ package murder
 // Orchestra for queueing systems
 // Provides availability via introducing multiple queues, locking and clearing
 type Murder struct {
-	crow      Crow
-	queueSize int
-	lockTTL   int
+	crow          Crow
+	queueSize     int
+	lockTTL       int
+	workerGroupID string
 }
 
 // Add :
 // Create a job in any queue
 func (m *Murder) Add(obj interface{}) {
-	queues := m.crow.GetQueues()
+	queues := m.crow.GetQueues(m.workerGroupID)
 	for _, q := range queues {
 		if !m.crow.IsLocked(q) && m.crow.QueueSize(q) < m.queueSize { // Queue is unlocked and can be added to
 			m.crow.AddToQueue(q, obj)
@@ -21,7 +22,7 @@ func (m *Murder) Add(obj interface{}) {
 	}
 	// No suitable queues found, create a new queue and add to it
 	queueName := newUUID()
-	m.crow.CreateQueue(queueName)
+	m.crow.CreateQueue(queueName, m.workerGroupID)
 	m.crow.AddToQueue(queueName, obj)
 }
 
@@ -29,7 +30,7 @@ func (m *Murder) Add(obj interface{}) {
 // Lock a queue returning a lock key that is needed for acknowledging the processing of the queue
 // If no queue is ready to process, returns empty string and false
 func (m *Murder) Lock() (string, bool) {
-	queues := m.crow.GetQueues()
+	queues := m.crow.GetQueues(m.workerGroupID)
 	for _, q := range queues {
 		if !m.crow.IsLocked(q) && m.crow.QueueSize(q) >= m.queueSize { // Queue is unlocked and can be processed
 			lockKey := newUUID()
@@ -79,10 +80,11 @@ func (m *Murder) Unlock(lockKey string) {
 
 // NewMurder :
 // Returns a new instance of murder with the given options
-func NewMurder(bulkSize, TTL int, crow Crow) *Murder {
+func NewMurder(bulkSize, TTL int, crow Crow, groupID string) *Murder {
 	return &Murder{
-		crow:      crow,
-		queueSize: bulkSize,
-		lockTTL:   TTL,
+		crow:          crow,
+		queueSize:     bulkSize,
+		lockTTL:       TTL,
+		workerGroupID: groupID,
 	}
 }

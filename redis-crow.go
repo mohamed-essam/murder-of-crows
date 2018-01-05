@@ -9,11 +9,12 @@ import (
 )
 
 type RedisCrow struct {
+	Crow
 	Redis *redis.Client
 }
 
-func (c *RedisCrow) CreateQueue(queueName string) error {
-	_, err := c.Redis.LPush("murder::crows", queueName).Result()
+func (c *RedisCrow) CreateQueue(queueName, groupID string) error {
+	_, err := c.Redis.LPush(fmt.Sprintf("murder::%s::crows", groupID), queueName).Result()
 	return err
 }
 
@@ -46,8 +47,8 @@ func (c *RedisCrow) CreateLockKey(queueName string, lockKey string, TTL int) boo
 	return locked
 }
 
-func (c *RedisCrow) GetQueues() []string {
-	queues, _ := c.Redis.LRange("murder::crows", 0, -1).Result()
+func (c *RedisCrow) GetQueues(groupID string) []string {
+	queues, _ := c.Redis.LRange(fmt.Sprintf("murder::%s::crows", groupID), 0, -1).Result()
 	return queues
 }
 
@@ -72,8 +73,8 @@ func (c *RedisCrow) ExtendLockKey(lockKey string, TTL int) {
 }
 
 func (c *RedisCrow) RemoveLockKey(lockKey string) {
-	c.Redis.Del(fmt.Sprintf("murder::crows::%s::key", lockKey))
 	queue, ok := c.FindQueueByKey(lockKey)
+	c.Redis.Del(fmt.Sprintf("murder::crows::%s::key", lockKey))
 	if ok {
 		c.Redis.Del(fmt.Sprintf("murder::crows::%s::locked", queue))
 	}
