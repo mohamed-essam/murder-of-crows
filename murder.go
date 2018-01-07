@@ -13,8 +13,8 @@ type Murder struct {
 // Add :
 // Create a job in any queue
 func (m *Murder) Add(obj interface{}) {
-	queues := m.crow.GetQueues(m.workerGroupID)
-	for _, q := range queues {
+	q, ok := m.crow.CurrentQueue(m.workerGroupID)
+	if ok {
 		size := m.crow.QueueSize(q)
 		if size < m.queueSize {
 			m.crow.AddToQueue(q, obj)
@@ -24,10 +24,11 @@ func (m *Murder) Add(obj interface{}) {
 			return
 		}
 		m.crow.MoveToReady(q, m.workerGroupID)
+		return
 	}
 	// No suitable queues found, create a new queue and add to it
 	queueName := newUUID()
-	m.crow.CreateQueue(queueName, m.workerGroupID)
+	queueName, _ = m.crow.SetCurrentQueue(m.workerGroupID, queueName)
 	m.crow.AddToQueue(queueName, obj)
 }
 
