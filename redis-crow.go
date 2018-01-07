@@ -27,7 +27,7 @@ func (c *RedisCrow) CurrentQueue(groupName string) (string, bool) {
 }
 
 func (c *RedisCrow) SetCurrentQueue(queueName, groupName string) (string, bool) {
-	ok, _ := c.Redis.SetNX(fmt.Sprintf("murder::%s::crow::current"), queueName, time.Duration(0)).Result()
+	ok, _ := c.Redis.SetNX(fmt.Sprintf("murder::%s::crow::current", groupName), queueName, time.Duration(0)).Result()
 	if ok {
 		return queueName, true
 	}
@@ -88,7 +88,7 @@ func (c *RedisCrow) RemoveLockKey(lockKey string) {
 
 func (c *RedisCrow) MoveToReady(queueName, groupID string) {
 	c.Redis.SAdd(fmt.Sprintf("murder::%s::ready", groupID), queueName).Result()
-	c.Redis.Del(fmt.Sprintf("murder::%s::crow::current"))
+	c.Redis.Del(fmt.Sprintf("murder::%s::crow::current", groupID))
 }
 
 func (c *RedisCrow) GetReadyQueues(groupID string) []string {
