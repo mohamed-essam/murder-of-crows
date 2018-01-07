@@ -23,8 +23,6 @@ func (m *Murder) Add(obj interface{}) {
 			}
 			return
 		}
-		m.crow.MoveToReady(q, m.workerGroupID)
-		return
 	}
 	// No suitable queues found, create a new queue and add to it
 	queueName := newUUID()
