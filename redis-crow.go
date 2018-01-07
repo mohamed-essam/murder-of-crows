@@ -19,7 +19,7 @@ func (c *RedisCrow) QueueSize(queueName string) int {
 }
 
 func (c *RedisCrow) CurrentQueue(groupName string) (string, bool) {
-	queue, err := c.Redis.Get(fmt.Sprintf("murder::crows::%s::main", groupName)).Result()
+	queue, err := c.Redis.Get(fmt.Sprintf("murder::%s::crow::current", groupName)).Result()
 	if queue != "" || err != nil {
 		return "", false
 	}
