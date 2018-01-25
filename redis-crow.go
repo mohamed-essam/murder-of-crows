@@ -90,7 +90,9 @@ func (c *RedisCrow) RemoveLockKey(lockKey string) {
 
 func (c *RedisCrow) MoveToReady(queueName, groupID string) {
 	c.Redis.SAdd(fmt.Sprintf("murder::%s::ready", groupID), queueName).Result()
-	c.Redis.Del(fmt.Sprintf("murder::%s::crow::current", groupID))
+	// Atomically delete current queue iff it is the queue we're trying to move to ready
+	currentQueueKey := fmt.Sprintf("murder::%s::crow::current", groupID)
+	c.Redis.Eval("local cur = redis.call(\"get\", ARGV[1]) if cur == ARGV[2] then redis.call(\"del\", ARGV[1]) end", []string{"cur", "q"}, []string{currentQueueKey, queueName})
 }
 
 func (c *RedisCrow) GetReadyQueues(groupID string) []string {

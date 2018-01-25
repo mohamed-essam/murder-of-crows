@@ -27,7 +27,10 @@ func (m *Murder) Add(obj interface{}) {
 	}
 	// No suitable queues found, create a new queue and add to it
 	queueName := newUUID()
-	queueName, _ = m.crow.SetCurrentQueue(queueName, m.workerGroupID)
+	ok = true
+	for !ok {
+		queueName, ok = m.crow.SetCurrentQueue(queueName, m.workerGroupID)
+	}
 	m.crow.AddToQueue(queueName, obj)
 }
 
