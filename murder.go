@@ -61,8 +61,14 @@ func (m *Murder) Ack(lockKey string) {
 func (m *Murder) Mark(lockKey string) {
 	q, ok := m.crow.FindQueueByKey(lockKey)
 	if ok {
-		m.crow.ClearQueue(q, m.workerGroupID)
-		m.crow.RemoveLockKey(lockKey) // for cleaning up
+		for {
+			err := m.crow.ClearQueue(q, m.workerGroupID)
+			if err != nil {
+				continue
+			}
+			m.crow.RemoveLockKey(lockKey) // for cleaning up
+			break
+		}
 	}
 }
 

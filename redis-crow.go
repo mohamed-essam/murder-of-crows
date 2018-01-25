@@ -3,6 +3,7 @@ package murder
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"gopkg.in/redis.v5"
@@ -33,7 +34,11 @@ func (c *RedisCrow) GetQueueContents(queueName string) []string {
 
 func (c *RedisCrow) ClearQueue(queueName string, groupID string) error {
 	_, err := c.Redis.Del(fmt.Sprintf("murder::crows::%s", queueName)).Result()
-	c.Redis.SRem(fmt.Sprintf("murder::%s::ready", groupID), queueName).Result()
+	if err == nil {
+		c.Redis.SRem(fmt.Sprintf("murder::%s::ready", groupID), queueName).Result()
+	} else {
+		log.Printf("Error: %s", err.Error())
+	}
 	return err
 }
 
