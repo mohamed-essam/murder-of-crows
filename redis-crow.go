@@ -28,10 +28,12 @@ func (c *RedisCrow) CurrentQueue(groupName string) (string, bool) {
 
 func (c *RedisCrow) SetCurrentQueue(queueName, groupName string) (string, bool) {
 	ok, _ := c.Redis.SetNX(fmt.Sprintf("murder::%s::crow::current", groupName), queueName, time.Duration(0)).Result()
+	c.Redis.Expire(queueName, time.Duration(5)*time.Minute)
 	if ok {
 		return queueName, true
 	}
-	return c.CurrentQueue(groupName)
+	queueName, ok = c.CurrentQueue(groupName)
+	return queueName, ok
 }
 
 func (c *RedisCrow) AddToQueue(queueName string, obj interface{}) {
