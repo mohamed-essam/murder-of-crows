@@ -9,36 +9,21 @@ import (
 )
 
 type RedisCrow struct {
-	Crow
 	Redis *redis.Client
 }
 
-func (c *RedisCrow) QueueSize(queueName string) int {
-	size, _ := c.Redis.LLen(fmt.Sprintf("murder::crows::%s", queueName)).Result()
+func (c *RedisCrow) QueueSize(groupName string) int {
+	size, _ := c.Redis.LLen(c.CurrentQueue(groupName)).Result()
 	return int(size)
 }
 
-func (c *RedisCrow) CurrentQueue(groupName string) (string, bool) {
-	queue, err := c.Redis.Get(fmt.Sprintf("murder::%s::crow::current", groupName)).Result()
-	if queue == "" || err != nil {
-		return "", false
-	}
-	return queue, true
+func (c *RedisCrow) CurrentQueue(groupName string) string {
+	return fmt.Sprintf("murder::%s::mainQueue", groupName)
 }
 
-func (c *RedisCrow) SetCurrentQueue(queueName, groupName string) (string, bool) {
-	ok, _ := c.Redis.SetNX(fmt.Sprintf("murder::%s::crow::current", groupName), queueName, time.Duration(0)).Result()
-	c.Redis.Expire(queueName, time.Duration(5)*time.Minute)
-	if ok {
-		return queueName, true
-	}
-	queueName, ok = c.CurrentQueue(groupName)
-	return queueName, ok
-}
-
-func (c *RedisCrow) AddToQueue(queueName string, obj interface{}) {
+func (c *RedisCrow) AddToQueue(groupName string, obj interface{}) {
 	marshalled, _ := json.Marshal(obj)
-	c.Redis.LPush(fmt.Sprintf("murder::crows::%s", queueName), marshalled).Result()
+	c.Redis.LPush(c.CurrentQueue(groupName), marshalled).Result()
 }
 
 func (c *RedisCrow) GetQueueContents(queueName string) []string {
@@ -88,13 +73,12 @@ func (c *RedisCrow) RemoveLockKey(lockKey string) {
 	}
 }
 
-func (c *RedisCrow) MoveToReady(queueName, groupID, newName string) {
-	c.Redis.SAdd(fmt.Sprintf("murder::%s::ready", groupID), queueName).Result()
-	currentQueueKey := fmt.Sprintf("murder::%s::crow::current", groupID)
-	ok, _ := c.Redis.SetNX(fmt.Sprintf("%s::lock", currentQueueKey), "1", time.Duration(1)*time.Second).Result()
+func (c *RedisCrow) MoveToReady(groupName, newName string) {
+	ok, _ := c.Redis.SetNX(fmt.Sprintf("%s::lock", c.CurrentQueue(groupName)), "1", time.Duration(1)*time.Second).Result()
 	if ok {
-		c.Redis.Set(currentQueueKey, newName, time.Duration(0))
-		c.Redis.Del(fmt.Sprintf("%s::lock", currentQueueKey))
+		c.Redis.Rename(c.CurrentQueue(groupName), fmt.Sprintf("murder::crows::%s", newName))
+		c.Redis.SAdd(fmt.Sprintf("murder::%s::ready", groupName), newName)
+		c.Redis.Del(fmt.Sprintf("%s::lock", c.CurrentQueue(groupName)))
 	}
 }
 

@@ -13,20 +13,12 @@ type Murder struct {
 // Add :
 // Create a job in any queue
 func (m *Murder) Add(obj interface{}) {
-	q, ok := m.crow.CurrentQueue(m.workerGroupID)
-	if ok {
-		size := m.crow.QueueSize(q)
-		if size >= m.queueSize {
-			queueName := newUUID()
-			m.crow.MoveToReady(q, m.workerGroupID, queueName)
-		}
-	} else {
+	size := m.crow.QueueSize(m.workerGroupID)
+	if size >= m.queueSize {
 		queueName := newUUID()
-		m.crow.SetCurrentQueue(queueName, m.workerGroupID)
+		m.crow.MoveToReady(m.workerGroupID, queueName)
 	}
-	// No suitable queues found, create a new queue and add to it
-	q, _ = m.crow.CurrentQueue(m.workerGroupID)
-	m.crow.AddToQueue(q, obj)
+	m.crow.AddToQueue(m.workerGroupID, obj)
 }
 
 // Lock :
