@@ -12,7 +12,7 @@ type Crow interface {
 	FindQueueByKey(string) (string, bool)          // Get the queue for a lock key if exists
 	ExtendLockKey(string, int)                     // Extend TTL of lock key to value provided
 	RemoveLockKey(string)                          // Removes a lock key if exists
-	MoveToReady(string, string)                    // Move a queue to ready to process queues
+	MoveToReady(string, string, string)            // Move a queue to ready to process queues
 	GetReadyQueues(string) []string                // Get full queues
 	CurrentQueue(string) (string, bool)            // Get current queue
 	SetCurrentQueue(string, string) (string, bool) // Set current queue and return current queue and whether it was updated

@@ -16,22 +16,17 @@ func (m *Murder) Add(obj interface{}) {
 	q, ok := m.crow.CurrentQueue(m.workerGroupID)
 	if ok {
 		size := m.crow.QueueSize(q)
-		if size < m.queueSize {
-			m.crow.AddToQueue(q, obj)
-			if size+1 >= m.queueSize {
-				m.crow.MoveToReady(q, m.workerGroupID)
-			}
-			return
+		if size >= m.queueSize {
+			queueName := newUUID()
+			m.crow.MoveToReady(q, m.workerGroupID, queueName)
 		}
-		m.crow.MoveToReady(q, m.workerGroupID)
+	} else {
+		queueName := newUUID()
+		m.crow.SetCurrentQueue(queueName, m.workerGroupID)
 	}
 	// No suitable queues found, create a new queue and add to it
-	queueName := newUUID()
-	ok = true
-	for !ok {
-		queueName, ok = m.crow.SetCurrentQueue(queueName, m.workerGroupID)
-	}
-	m.crow.AddToQueue(queueName, obj)
+	q, _ = m.crow.CurrentQueue(m.workerGroupID)
+	m.crow.AddToQueue(q, obj)
 }
 
 // Lock :
