@@ -31,9 +31,7 @@ func (c *RedisCrow) CurrentQueue(groupName string) string {
 	return fmt.Sprintf("murder::%s::mainQueue", groupName)
 }
 
-func (c *RedisCrow) AddToQueue(murder *Murder, obj interface{}) {
-	groupName := murder.workerGroupID
-	ageConfigured := murder.AgeConfigured()
+func (c *RedisCrow) AddToQueue(groupName string, obj interface{}, ageConfigured bool) {
 	marshalled, _ := json.Marshal(obj)
 	currentQueue := c.CurrentQueue(groupName)
 	if !c.Redis.Exists(currentQueue).Val() && ageConfigured {

@@ -24,7 +24,7 @@ func (m *Murder) Add(obj interface{}) {
 		queueName := newUUID()
 		m.crow.MoveToReady(m.workerGroupID, queueName)
 	}
-	m.crow.AddToQueue(m,  obj)
+	m.crow.AddToQueue(m.workerGroupID,  obj, ageConfigured)
 }
 
 // Lock :
