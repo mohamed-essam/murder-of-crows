@@ -4,7 +4,8 @@ package murder
 // Interface for any storage system for the orchestrator to use
 type Crow interface {
 	QueueSize(string) int                   // Query main queue size
-	AddToQueue(string, interface{})         // Add object to queue
+	QueueTimeSinceCreation(string) int	// Query time since queue creation
+	AddToQueue(string, interface{}, bool)   // Add object to queue
 	GetQueueContents(string) []string       // Retrieve all contents of queue
 	ClearQueue(string, string) error        // Clear all queue contents
 	CreateLockKey(string, string, int) bool // Create lock key for a queue, confirm if lock acquired, and set TTL

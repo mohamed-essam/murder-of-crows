@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"time"
-
+	"strconv"
 	"gopkg.in/redis.v5"
 )
 
@@ -18,12 +18,26 @@ func (c *RedisCrow) QueueSize(groupName string) int {
 	return int(size)
 }
 
+func (c *RedisCrow) QueueTimeSinceCreation(groupName string) int {
+	queueAgeKey := fmt.Sprintf("murder::%s::age", c.CurrentQueue(groupName))
+	timeSinceCreation, _ := c.Redis.Get(queueAgeKey).Result()
+	timeSinceCreationInt, _ := strconv.ParseInt(timeSinceCreation, 10, 64)
+	age := time.Now().Unix() - timeSinceCreationInt
+	return int(age)
+}
+
+
 func (c *RedisCrow) CurrentQueue(groupName string) string {
 	return fmt.Sprintf("murder::%s::mainQueue", groupName)
 }
 
-func (c *RedisCrow) AddToQueue(groupName string, obj interface{}) {
+func (c *RedisCrow) AddToQueue(groupName string, obj interface{}, ageConfigured bool) {
 	marshalled, _ := json.Marshal(obj)
+	currentQueue := c.CurrentQueue(groupName)
+	if !c.Redis.Exists(currentQueue).Val() && ageConfigured {
+		queueAgeKey := fmt.Sprintf("murder::%s::age", currentQueue)
+		c.Redis.Set(queueAgeKey, time.Now().Unix(), time.Duration(0))
+	}
 	c.Redis.LPush(c.CurrentQueue(groupName), marshalled).Result()
 }
 
@@ -81,6 +95,7 @@ func (c *RedisCrow) RemoveLockKey(lockKey string) {
 func (c *RedisCrow) MoveToReady(groupName, newName string) {
 	ok, _ := c.Redis.SetNX(fmt.Sprintf("%s::lock", c.CurrentQueue(groupName)), "1", time.Duration(1)*time.Second).Result()
 	if ok {
+		c.Redis.Del(fmt.Sprintf("murder::%s::age", c.CurrentQueue(groupName)))
 		c.Redis.Rename(c.CurrentQueue(groupName), fmt.Sprintf("murder::crows::%s", newName))
 		c.Redis.SAdd(fmt.Sprintf("murder::%s::ready", groupName), newName)
 		c.Redis.Del(fmt.Sprintf("%s::lock", c.CurrentQueue(groupName)))
