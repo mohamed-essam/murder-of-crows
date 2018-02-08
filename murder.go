@@ -8,17 +8,23 @@ type Murder struct {
 	queueSize     int
 	lockTTL       int
 	workerGroupID string
+	queueAge      int
 }
 
 // Add :
 // Create a job in any queue
 func (m *Murder) Add(obj interface{}) {
 	size := m.crow.QueueSize(m.workerGroupID)
-	if size >= m.queueSize {
+	ageConfigured := m.AgeConfigured()
+	var age int
+	if (ageConfigured) {
+		age = m.crow.QueueTimeSinceCreation(m.workerGroupID)
+	}
+	if size >= m.queueSize || (ageConfigured && age > m.queueAge) {
 		queueName := newUUID()
 		m.crow.MoveToReady(m.workerGroupID, queueName)
 	}
-	m.crow.AddToQueue(m.workerGroupID, obj)
+	m.crow.AddToQueue(m,  obj)
 }
 
 // Lock :
@@ -79,6 +85,10 @@ func (m *Murder) Unlock(lockKey string) {
 	m.crow.RemoveLockKey(lockKey)
 }
 
+func (m *Murder) AgeConfigured() bool {
+	return (m.queueAge > 0)
+}
+
 // NewMurder :
 // Returns a new instance of murder with the given options
 func NewMurder(bulkSize, TTL int, crow Crow, groupID string) *Murder {
@@ -88,4 +98,14 @@ func NewMurder(bulkSize, TTL int, crow Crow, groupID string) *Murder {
 		lockTTL:       TTL,
 		workerGroupID: groupID,
 	}
+}
+
+
+// MurderWithAge:
+// Returns a new instance of murder with extra option of queue age
+
+func NewMurderWithAge(bulkSize, TTL int, crow Crow, groupID string, queueAge int) *Murder {
+	murder := NewMurder(bulkSize, TTL, crow, groupID)
+	murder.queueAge = queueAge
+	return murder
 }
